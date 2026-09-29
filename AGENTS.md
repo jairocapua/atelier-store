@@ -15,9 +15,25 @@ rewrites the marked block above; everything below it is ours to edit.
 
 ## Project state
 
-Scaffold only — wiring, not features. There is no storefront, catalog, cart,
-checkout, payment, or auth UI, and `src/lib/db/schema.ts` defines no tables yet.
-Treat the absence of these as "not built yet", not as something to work around.
+Early build. The homepage, product pages (`/products/[slug]`) and site chrome
+(header, menu drawer, footer) exist; every other route they link to —
+category listings, collections, cart, checkout, account — is not built yet and
+404s. There is no catalog, cart, payment, or
+auth UI, and `src/lib/db/schema.ts` defines no tables yet. Treat the absence of
+these as "not built yet", not as something to work around.
+
+Products, collections and imagery on the homepage come from
+`src/lib/catalog.ts`: invented sample data with photos hotlinked from Unsplash.
+Replace its exports with database queries of the same shape once catalog
+tables exist. `next.config.ts` allows Unsplash images only at the single query
+string that file requests (`UNSPLASH_QUERY`), so change both together. Stock
+is held per size on each product's `variants`; `stockState()` in the same file
+is the one place that decides in stock / low stock / sold out, so listings and
+product pages agree. Product pages are prerendered from that list with
+`dynamicParams = false`, which needs revisiting once products come from the
+database. Two server actions validate but persist nothing yet: the newsletter
+form (`src/lib/newsletter.ts`) and add to bag (`src/lib/bag.ts`), which checks
+the chosen size's stock but has no bag to write to.
 
 Stack: Next.js 16 (App Router, Turbopack), TypeScript strict, Tailwind CSS v4,
 Better Auth, Drizzle ORM, Neon Postgres over HTTP.
@@ -87,6 +103,37 @@ not flipping the flag.
 
 **`nextCookies()` must stay last in the `plugins` array** so server actions can
 set auth cookies.
+
+## Design system
+
+The whole system lives in `src/app/globals.css`. There is no
+`tailwind.config`, because Tailwind v4 is configured in CSS. Fonts load through
+`next/font` in `src/app/layout.tsx` and are mapped to `--font-sans` and
+`--font-display` there.
+
+- **The palette is closed.** `--color-*: initial` removes Tailwind's defaults,
+  so `bg-zinc-100` and similar classes silently generate nothing. Use the
+  semantic tokens (`background`, `foreground`, `surface`, `muted`, `line`,
+  `line-strong`, `danger`, `success`). `black`, `white` and `scrim` are only
+  for text over photography. Add a token before reaching for an arbitrary hex.
+- **Style text with the `type-*` roles** (`type-display`, `type-headline`,
+  `type-title`, `type-body`, `type-caption`, `type-label` and so on), not raw
+  `text-*` sizes. Headings are unstyled on purpose: choose the level for the
+  document outline and the role for the look.
+- **Dark areas use `theme-dark`.** It is not Tailwind's built-in `scheme-dark`,
+  which only sets `color-scheme`. The site never follows the OS dark-mode
+  setting.
+- **Layout tokens are responsive.** `gutter`, `column`, `section` and `header`
+  are redefined per breakpoint in `@layer base`, so `px-gutter` or
+  `py-section` adapt without breakpoint prefixes.
+- **Every page needs `<main id="main">`.** The root layout's skip link
+  targets it.
+- **Header overlay is opt-in per route.** Pages that open with a full-bleed
+  hero are listed in `OVERLAY_PATHS` (`src/components/header-shell.tsx`) and
+  pull the hero under the header with `-mt-header`; both halves are needed.
+  The header then starts transparent with the wordmark spread across the hero
+  and docks on scroll, using CSS scroll-driven animations only. Don't switch it
+  to a global `:root:has()` rule: the Next docs advise against that.
 
 ## Conventions
 

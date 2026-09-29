@@ -1,26 +1,763 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   Atelier design system
+
+   The whole system is here: tokens (@theme), element defaults (@layer base),
+   composite primitives (@layer components), and type roles and colour schemes
+   (@utility). Rules it enforces:
+
+   - Monochrome UI. The colour comes from photography, not from the interface.
+     The palette is closed: Tailwind's default colours are removed, so
+     `bg-zinc-100` and similar classes generate nothing.
+   - One sans for everything functional. The serif appears only at display
+     sizes. Hierarchy comes from size, weight and case, not colour.
+   - Square corners and 1px hairlines. There are no shadows, except on
+     floating layers.
+   - Imagery runs edge to edge. Text sits on a 12-column grid inside a
+     1440px shell with responsive gutters.
+   - The page is always light. Dark areas (footer, text over imagery) are
+     opted into with `theme-dark`. The site does not follow the OS setting.
+   ========================================================================== */
+
+@theme static {
+  /* Remove the Tailwind defaults this system replaces. */
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --radius: 0; /* bare `rounded` stays square */
+
+  /* Colour --------------------------------------------------------------- */
+  /* Semantic, scheme-aware: `theme-dark` redefines these (see @utility). */
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+  --color-surface: #f7f7f7; /* product and media ground */
+  --color-muted: #6b6b6b; /* secondary text: AA on background and surface */
+  --color-line: rgb(0 0 0 / 0.15); /* decorative hairlines and dividers */
+  --color-line-strong: rgb(0 0 0 / 0.55); /* control edges: at least 3:1 */
+  --color-danger: #b3261e;
+  --color-success: #1b6b3a;
+  /* Absolute: they do not flip with the scheme. Use for text over photos. */
+  --color-scrim: rgb(0 0 0 / 0.4);
+  --color-backdrop: rgb(0 0 0 / 0.3); /* dims the page behind drawers */
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* Typography ----------------------------------------------------------- */
+  /* Font variables are set on <html> by next/font in app/layout.tsx. */
+  --font-sans: var(--font-albert-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bodoni-moda), ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Closed scale. Line heights sit on a 4px grid. Tracking tightens as size
+     increases. Prefer the type-* roles below over raw sizes. */
+  --text-2xs: 0.625rem; /* 10 */
+  --text-2xs--line-height: 0.75rem;
+  --text-2xs--letter-spacing: 0.02em;
+  --text-xs: 0.75rem; /* 12: the workhorse */
+  --text-xs--line-height: 1rem;
+  --text-xs--letter-spacing: 0.01em;
+  --text-sm: 0.875rem; /* 14 */
+  --text-sm--line-height: 1.25rem;
+  --text-sm--letter-spacing: 0em;
+  --text-base: 1rem; /* 16 */
+  --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.005em;
+  --text-lg: 1.25rem; /* 20 */
+  --text-lg--line-height: 1.75rem;
+  --text-lg--letter-spacing: -0.01em;
+  --text-xl: 1.5rem; /* 24 */
+  --text-xl--line-height: 2rem;
+  --text-xl--letter-spacing: -0.015em;
+  --text-2xl: 2rem; /* 32 */
+  --text-2xl--line-height: 2.5rem;
+  --text-2xl--letter-spacing: -0.02em;
+  --text-3xl: 2.5rem; /* 40 */
+  --text-3xl--line-height: 3rem;
+  --text-3xl--letter-spacing: -0.025em;
+  --text-4xl: 3.5rem; /* 56 */
+  --text-4xl--line-height: 3.75rem;
+  --text-4xl--letter-spacing: -0.03em;
+  --text-5xl: 4.5rem; /* 72 */
+  --text-5xl--line-height: 4.5rem;
+  --text-5xl--letter-spacing: -0.035em;
+  --text-6xl: 6rem; /* 96 */
+  --text-6xl--line-height: 5.75rem;
+  --text-6xl--letter-spacing: -0.04em;
+
+  --tracking-label: 0.06em; /* uppercase labels need air, not squeeze */
+
+  /* Spacing -------------------------------------------------------------- */
+  /* Tailwind's 4px multiplier (p-4 = 16px) is kept. Named layout tokens
+     below are responsive; @layer base redefines them per breakpoint. */
+  --spacing-gutter: 1rem; /* page side padding: 16, 32, 48, 64 */
+  --spacing-column: 0.5rem; /* grid column gap: 8, 16, 24 */
+  --spacing-section: 3rem; /* vertical rhythm between blocks: 48, 64, 96 */
+  --spacing-header: 3.5rem; /* site header height: 56, 72 */
+
+  /* Containers (max-w-*, w-*) ------------------------------------------- */
+  --container-page: 90rem; /* 1440 shell, gutters included */
+  --container-measure: 40rem; /* comfortable reading line for body copy */
+  --container-panel: 27.5rem; /* side drawers: filters, bag */
+
+  /* Shape ---------------------------------------------------------------- */
+  --radius-sm: 0.125rem; /* only swatches and thumbnails; everything else is 0 or full */
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.08); /* menus, drawers, toasts only */
+
+  /* Media ---------------------------------------------------------------- */
+  --aspect-product: 3 / 4; /* product tiles */
+  --aspect-editorial: 4 / 5; /* campaign and look imagery */
+  --aspect-banner: 2 / 1; /* wide heroes on large screens */
+
+  /* Motion --------------------------------------------------------------- */
+  /* One curve with a long, soft landing. Use about 300ms for state changes
+     (colour, underline) and about 800ms for media, drawers and carousels. */
+  --ease-standard: cubic-bezier(0.5, 0, 0, 1);
+  --default-transition-duration: 300ms;
+  --default-transition-timing-function: cubic-bezier(0.5, 0, 0, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+/* ==========================================================================
+   Base: element defaults
+   ========================================================================== */
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+    accent-color: var(--color-foreground);
+    scroll-padding-top: var(--spacing-header);
+
+    @variant md {
+      --spacing-gutter: 2rem;
+      --spacing-column: 1rem;
+      --spacing-section: 4rem;
+    }
+    @variant lg {
+      --spacing-gutter: 3rem;
+      --spacing-column: 1.5rem;
+      --spacing-section: 6rem;
+      --spacing-header: 4.5rem;
+    }
+    @variant xl {
+      --spacing-gutter: 4rem;
+    }
+  }
+
+  /* Hairlines by default: a bare `border` is a 1px line in --color-line. */
+  *,
+  ::before,
+  ::after,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    font-kerning: normal;
+  }
+
+  /* Headings stay unstyled (Tailwind preflight). Semantics and appearance
+     are independent: pick the level for the outline, a type-* role for the look. */
+
+  ::selection {
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+  }
+
+  /* One focus treatment everywhere. It follows the scheme, so it inverts
+     inside theme-dark. */
+  :focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ==========================================================================
+   Type roles: compose size, weight, case and tracking. These are utilities,
+   so variants work (`lg:type-headline`), and a single-property utility such
+   as `text-muted` or `font-bold` still overrides them.
+   ========================================================================== */
+
+/* Editorial serif: campaign titles and the wordmark. At most once per view. */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-3xl);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+
+  @variant md {
+    font-size: var(--text-4xl);
+  }
+  @variant xl {
+    font-size: var(--text-5xl);
+    line-height: 1;
+  }
+}
+
+/* Page and section titles: sans, uppercase, restrained size. */
+@utility type-headline {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-lg);
+  line-height: 1.5rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+
+  @variant lg {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+  }
+}
+
+/* Module titles: product name on a product page, accordion rows, dialogs. */
+@utility type-title {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  letter-spacing: var(--text-base--letter-spacing);
+}
+
+@utility type-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  letter-spacing: var(--text-base--letter-spacing);
+  text-wrap: pretty;
+}
+
+@utility type-body-sm {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  letter-spacing: var(--text-sm--letter-spacing);
+  text-wrap: pretty;
+}
+
+/* Product names in grids, prices, metadata, footer links. */
+@utility type-caption {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  letter-spacing: var(--text-xs--letter-spacing);
+}
+
+/* Bold uppercase: calls to action, navigation triggers, column headings. */
+@utility type-label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* Tags and breadcrumbs. Never for anything a shopper must read to act. */
+@utility type-micro {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+  letter-spacing: var(--text-2xs--letter-spacing);
+}
+
+/* ==========================================================================
+   Colour schemes: redefine the semantic tokens for a subtree. Everything
+   inside (text, hairlines, buttons, focus rings) inverts with it. Add
+   `bg-background` to paint the area, or leave it transparent over imagery.
+   ========================================================================== */
+@utility theme-dark {
+  color-scheme: dark;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-surface: #141414;
+  --color-muted: #a3a3a3;
+  --color-line: rgb(255 255 255 / 0.2);
+  --color-line-strong: rgb(255 255 255 / 0.5);
+  --color-danger: #f28b82;
+  --color-success: #81c995;
+  color: var(--color-foreground);
+}
+
+@utility theme-light {
+  color-scheme: light;
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+  --color-surface: #f7f7f7;
+  --color-muted: #6b6b6b;
+  --color-line: rgb(0 0 0 / 0.15);
+  --color-line-strong: rgb(0 0 0 / 0.55);
+  --color-danger: #b3261e;
+  --color-success: #1b6b3a;
+  color: var(--color-foreground);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Components: layout and control primitives. They sit in the components
+   layer, so any utility class overrides them.
+   ========================================================================== */
+@layer components {
+  /* Layout --------------------------------------------------------------- */
+
+  /* The page shell: 1440px maximum, responsive side gutters. */
+  .page-container {
+    width: 100%;
+    max-width: var(--container-page);
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* Pull a child out to the shell's edges, for example full-bleed media or
+     a scroll row inside .page-container. */
+  .bleed {
+    margin-inline: calc(var(--spacing-gutter) * -1);
+  }
+
+  /* 12 columns at every width; children place themselves with col-span-*. */
+  .layout-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--spacing-column);
+  }
+
+  /* Product listing. Tiles touch, separated only by a 1px seam of the page
+     background. 2, 3 and 4 columns. Place it full-bleed, outside
+     .page-container. */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1px;
+
+    @variant md {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    @variant lg {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* Image well on the surface ground. Set the ratio with aspect-product,
+     aspect-editorial, aspect-banner or aspect-square. The media child
+     fills the frame (cover by default; add object-contain for packshots). */
+  .media-frame {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--color-surface);
+
+    & > :is(img, video, picture) {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  /* A horizontal row that scrolls instead of wrapping, such as category
+     tabs or swatches. Padded to the gutter so the first item aligns with the
+     grid. Add .bleed inside a .page-container so it scrolls to the edge. */
+  .scroll-row {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--spacing-gutter);
+    padding-inline: var(--spacing-gutter);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    & > * {
+      flex: none;
+      scroll-snap-align: start;
+    }
+  }
+
+  /* Buttons -------------------------------------------------------------- */
+  /* Square, 48px tall, bold uppercase label. Always combine .btn with one
+     colour variant. The variants read scheme tokens, so .btn-primary
+     becomes white on black inside theme-dark with no extra classes. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+    padding-inline: 2rem;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 0;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: var(--default-transition-duration);
+    transition-timing-function: var(--ease-standard);
+
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    & > svg {
+      width: 1rem;
+      height: 1rem;
+      flex: none;
+    }
+  }
+
+  .btn-sm {
+    min-height: 2.5rem;
+    padding-inline: 1.25rem;
+  }
+
+  /* Solid: the single most important action in a view. */
+  .btn-primary {
+    background-color: var(--color-foreground);
+    border-color: var(--color-foreground);
+    color: var(--color-background);
+
+    @variant hover {
+      background-color: color-mix(in oklab, var(--color-foreground) 80%, var(--color-background));
+      border-color: color-mix(in oklab, var(--color-foreground) 80%, var(--color-background));
+    }
+  }
+
+  /* Outline: secondary actions next to a primary, or on their own. */
+  .btn-secondary {
+    background-color: transparent;
+    border-color: var(--color-foreground);
+    color: var(--color-foreground);
+
+    @variant hover {
+      background-color: var(--color-foreground);
+      color: var(--color-background);
+    }
+  }
+
+  /* Round icon-only control: search, bag, close, carousel arrows. The 44px
+     target meets touch guidelines. It must carry an aria-label. */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+    border-radius: calc(infinity * 1px);
+    color: inherit;
+    cursor: pointer;
+    transition-property: background-color, opacity;
+    transition-duration: var(--default-transition-duration);
+    transition-timing-function: var(--ease-standard);
+
+    @variant hover {
+      background-color: color-mix(in oklab, var(--color-foreground) 8%, transparent);
+    }
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    & > svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
+
+  /* Links ---------------------------------------------------------------- */
+  /* Links are underlined and keep the text colour, never blue. The
+     underline fades on hover. Unclassed <a> tags (CMS or markdown copy)
+     get this treatment automatically. */
+  .link,
+  :where(a:not([class])) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: currentColor;
+    transition: text-decoration-color var(--default-transition-duration) var(--ease-standard);
+
+    @variant hover {
+      text-decoration-color: color-mix(in oklab, currentColor 30%, transparent);
+    }
+  }
+
+  /* Navigation links: no underline at rest. The underline appears on hover
+     and marks the current page (aria-current). */
+  .link-nav {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.35em;
+    text-decoration-color: transparent;
+    transition: text-decoration-color var(--default-transition-duration) var(--ease-standard);
+
+    @variant hover {
+      text-decoration-color: currentColor;
+    }
+    &[aria-current="page"],
+    &[aria-current="true"] {
+      text-decoration-color: currentColor;
+    }
+  }
+
+  /* Forms ---------------------------------------------------------------- */
+  .field {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .field-label {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    letter-spacing: var(--text-xs--letter-spacing);
+    font-weight: 500;
+  }
+
+  /* Underline-only input. 16px text stops iOS from zooming on focus. */
+  .input {
+    width: 100%;
+    min-height: 3rem;
+    padding-block: 0.75rem;
+    background-color: transparent;
+    color: var(--color-foreground);
+    border-width: 0 0 1px;
+    border-style: solid;
+    border-color: var(--color-line-strong);
+    border-radius: 0;
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    transition-property: border-color, box-shadow;
+    transition-duration: var(--default-transition-duration);
+    transition-timing-function: var(--ease-standard);
+
+    &::placeholder {
+      color: var(--color-muted);
+      opacity: 1;
+    }
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-foreground);
+      box-shadow: 0 1px 0 0 var(--color-foreground);
+    }
+    &[aria-invalid="true"] {
+      border-color: var(--color-danger);
+      box-shadow: 0 1px 0 0 var(--color-danger);
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  .field-message {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--color-muted);
+
+    &[data-tone="error"] {
+      color: var(--color-danger);
+    }
+  }
+
+  /* Drawer --------------------------------------------------------------- */
+  /* Side panel for [popover] elements: navigation, filters, bag. Slides in
+     from the left over a dimmed page; light dismiss and Escape come free. */
+  .drawer {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 100%;
+    max-width: var(--container-panel);
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    box-shadow: var(--shadow-float);
+    translate: -100% 0;
+    transition:
+      translate 800ms var(--ease-standard),
+      display 800ms allow-discrete,
+      overlay 800ms allow-discrete;
+
+    &:popover-open {
+      translate: 0 0;
+
+      @starting-style {
+        translate: -100% 0;
+      }
+    }
+    &::backdrop {
+      background-color: var(--color-backdrop);
+      opacity: 0;
+      transition:
+        opacity 800ms var(--ease-standard),
+        display 800ms allow-discrete,
+        overlay 800ms allow-discrete;
+    }
+    &:popover-open::backdrop {
+      opacity: 1;
+
+      @starting-style {
+        opacity: 0;
+      }
+    }
+  }
+
+  /* Site chrome ---------------------------------------------------------- */
+  /* Sticky header with the wordmark centred. With [data-overlay], set on
+     pages that open with a full-bleed hero, it starts transparent over the
+     image with the wordmark spread across the page, then docks and turns
+     solid as the hero scrolls away. The hero pulls itself under the header
+     with -mt-header. Browsers without scroll-driven animations, and anyone
+     who prefers reduced motion, get the solid header throughout. */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--spacing-header);
+    background-color: var(--color-background);
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-foreground);
+
+    & :focus-visible {
+      outline-color: currentColor;
+    }
+  }
+
+  /* Wide enough to span the page shell: the ratio is the inverse of the
+     set wordmark's width in em. */
+  .wordmark-full {
+    font-size: calc((min(100vw, var(--container-page)) - 2 * var(--spacing-gutter)) * 0.245);
+  }
+
+  .site-wordmark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    padding-inline-start: 0.16em; /* balances the trailing letter-spacing */
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.375rem;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    @variant lg {
+      font-size: 1.75rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .site-header[data-overlay] {
+        border-bottom-color: transparent;
+        animation: header-over-hero linear both;
+        animation-timeline: scroll(root);
+        animation-range: calc(100svh - 2 * var(--spacing-header)) calc(100svh - var(--spacing-header));
+
+        & .site-wordmark {
+          animation: wordmark-dock linear both;
+          animation-timeline: scroll(root);
+          animation-range: 0 50svh;
+        }
+      }
+    }
+  }
+
+  /* Accessibility -------------------------------------------------------- */
+  /* First focusable element on every page. Hidden until it receives
+     keyboard focus. */
+  .skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: var(--spacing-gutter);
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+    font-weight: 700;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    translate: 0 -200%;
+
+    &:focus-visible {
+      translate: 0 0;
+    }
+  }
+}
+
+/* ==========================================================================
+   Keyframes. Each animates from the given state to the element's own styles.
+   ========================================================================== */
+
+/* Header over a full-bleed hero: transparent with white ink, then solid. */
+@keyframes header-over-hero {
+  from {
+    background-color: transparent;
+    border-bottom-color: transparent;
+    color: var(--color-white);
+  }
+  to {
+    border-bottom-color: var(--color-line);
+  }
+}
+
+/* Wordmark spread across the hero, below the header row, then docked. */
+@keyframes wordmark-dock {
+  from {
+    top: calc(var(--spacing-header) + (min(100vw, var(--container-page)) - 2 * var(--spacing-gutter)) * 0.1225);
+    font-size: calc((min(100vw, var(--container-page)) - 2 * var(--spacing-gutter)) * 0.245);
+    letter-spacing: 0;
+    padding-inline-start: 0;
+  }
 }
